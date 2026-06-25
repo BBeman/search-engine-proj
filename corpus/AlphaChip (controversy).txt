@@ -1,0 +1,98 @@
+AlphaChip (controversy)
+
+The AlphaChip controversy refers to a series of public, scholarly, and legal disputes surrounding a 2021 Nature paper by Google-affiliated researchers. The paper describes an approach to macro placement, a stage of chip floorplanning, based on reinforcement learning (RL), a machine learning method in which a system iteratively improves its decisions by optimizing performance-based reward signals.
+The primary technical question is whether the new techniques are better than existing (non-AI) techniques.  Both internal Google studies and external attempts to replicate the algorithm have failed to show the claimed benefits.  No head-to-head comparison is available because the data used in the paper is proprietary, and Google has not released any results from running its algorithm on public benchmarks.  This has resulted in considerable skepticism over the paper's claims. In addition, the inability of others (both inside and outside of Google) to replicate the claimed results have sparked concerns about the paper’s methodology, reproducibility, and scientific integrity.
+The lead researchers of the Nature paper were affiliated with Google Brain, which became part of Google DeepMind, and later spun off into the company Ricursive.
+
+
+== Motivation for research: Macro placement in chip layout ==
+
+Chip design for modern integrated circuits is a complex, expert-driven process that relies on electronic design automation.  It determines the performance of the final chip, and takes weeks or months to complete.  Advances that produce better designs, or complete the process faster, are commercially and academically significant.
+Macro placement is a step during chip design that determines the locations of large circuit components (macros) within a chip.  It is followed by detailed placement, which places the far more numerous but much smaller standard cells.  Alternatively, mixed-size placement simultaneously places both large macros and millions of small cells, requiring algorithms to handle objects that differ by several orders of magnitude in area and mobility. The number of macros per circuit typically ranges from several to thousands.
+
+Wiring must be performed after placement, and the details of this wiring strongly influence the power, performance, and area (PPA) of the completed chip.  The full wiring calculation is very resource intensive, so placement tools typically use a proxy cost, a simplified objective function used to guide the placement algorithm during training and evaluation.  The faithfulness of the chosen proxy cost to the final objective cost is a critical aspect of placer performance.
+
+
+=== State of the art as of 2021 ===
+Chips have been designed since the 1960s, so there were many existing methods as of 2021.  Available options included manual design, academic tools, and commercial offerings.   Academic methods include combinatorial optimization techniques such as simulated annealing, analytical placement, hierarchical heuristics,  and as of 2019 reinforcement learning and broader machine learning techniques..  Existing (non-AI) academic tools for solving the same problem include APlace, NTUplace3, ePlace, RePlace, and DREAMPlace.
+Commercial EDA vendors also offered automated software tools for floorplanning and mixed-size placement. For instance, as of 2019 Cadence’s Innovus implementation software offered a Concurrent Macro Placer (CMP) feature to automatically place large blocks and standard cells.
+
+
+== The 2021 Nature paper and its claims ==
+In 2021, Nature published a paper under the title “A graph‑placement methodology for fast chip design” co‑authored by 21 Google-affiliated researchers. The paper reported that an RL agent could generate macro placements for integrated circuits "in under six hours" and achieve improvements over human-designed layouts in power, timing performance, and area (PPA), standard chip-quality metrics referring respectively to energy consumption, chip operating speed, and silicon footprint (evaluated after wire routing).  It introduced a sequential macro placement algorithm in which macros are placed one at a time instead of optimizing their locations concurrently. At each step, the algorithm selects a location for a single macro on a discretized chip canvas, conditioning its decision on the placements of previously placed macros. This sequential formulation converts macro placement into a long-horizon decision process in which early placement choices constrain later ones. After macro placement, force-directed placement is applied to place standard cells connected to the macros. Deep reinforcement learning is used to train a policy network to place macros by maximizing a reward that reflects final placement quality (for example, wirelength and congestion). Policy learning occurs during self‑play for one or multiple circuit designs. Further placement optimizations refine the overall layout by balancing wirelength, density, and overlap constraints, while treating the macro locations produced by the RL policy as fixed obstacles. The approach relies on pre-training, in which the RL model is first trained on a corpus of prior designs (twenty in the Nature paper) to learn general placement patterns before being fine-tuned on a specific chip.
+Circuit examples used in the study were parts of proprietary Google TPU designs, called blocks (or floorplan partitions). The paper reported results on five blocks and described the approach as generalizable across chip designs.
+
+
+== Controversy ==
+Soon after the paper's publication, controversy arose over whether the claims were true, whether they were sufficiently proven, and whether academic standards were followed.  These controversies arose both within Google and among external academic experts.
+
+
+=== Internal dispute at Google and legal proceedings ===
+In 2022, Satrajit Chatterjee, a Google engineer involved in reviewing the AlphaChip work, raised concerns internally and drafted an alternative analysis, (Stronger Baselines) arguing that established methods outperformed the RL approach under fair comparison. In March 2022, Google declined to publish this analysis and terminated Chatterjee's employment.
+Chatterjee filed a wrongful dismissal lawsuit, alleging that representations related to the AlphaChip research involved fraud and scientific misconduct.  According to court documents, Chatterjee's study was conducted "in the context of a large potential Google Cloud deal".  He noted that it "would have been unethical to imply that we had revolutionary technology when our tests showed otherwise" and claimed Google was deliberately withholding material information. Furthermore, the committee that reviewed his paper and disapproved its publication was allegedly chaired by subordinates of Jeff Dean, a senior co-author of the Nature paper. Google’s subsequent motion to dismiss was denied, holding that Chatterjee had plausibly alleged retaliation for refusing to engage in conduct he believed would violate state or federal law.
+
+
+=== External controversy ===
+The external questions can be summarized in four main points: (a) Are the claims supported by the evidence provided?  (b) Did the paper provide enough information to allow the results to be independently reproduced and verified?  If so, are the results an improvement over existing academic and commercial tools?  (c) Were the comparisons in the paper done fairly and with full disclosure? (d) Were academic standards followed? Each of these is discussed below.
+
+
+==== Are the claims supported by the evidence provided? ====
+The Nature paper described the reduction in design-process time as going from "days or weeks" to "hours", but did not provide per-design time breakdowns or specify the number of engineers, their level of expertise, or the baseline tools and workflow against which this comparison was made. It was also unclear whether the "days or weeks" baseline included time spent on other tasks such as functional design changes.  The paper also evaluated the method on fewer benchmarks (five) than is common in the field, and showed mixed results across different evaluation goals
+While the approach was described as improving circuit area, this claim seems unsupported, as the RL optimization did not alter the overall circuit area, as it adjusted only the locations of fixed-shape non-overlapping circuit components within a fixed rectangular layout boundary.
+
+
+==== Comparison with existing methods, and replicating the algorithm ====
+Because macro placement is largely geometric and its fundamental algorithms are not tied to a specific process node, competing approaches can be evaluated on public benchmarks (tests) across technologies, rather than primarily on proprietary internal designs. This is standard procedure when comparing academic placers, see .
+In contrast, Google has only reported results only on internal proprietary designs, and as of 2026 has not offered comparisons with prior methods on common benchmarks.
+Researchers at the University of California, San Diego (UC San Diego), led by professors Chung-Kuan Cheng and Andrew B. Kahng, have re-implemented the AlphaChip algorithm, working from the description in the paper and the released source code.  In 2023, they placed a wide variety of public domain designs using five different placers: their AlphaChip replicate, classic simulated annealing (as described in Stronger Baselines), a leading academic placer (RePlace), a commercial placer (CMP from Cadence), and human placement.  In these results, the AlphaChip algorithm did not outperform existing techniques.  AlphaChip raised numerous objections to this comparison, and Kahng et. al. in turn replied.
+After taking the objections into account, they re-did the placements, fully routed them (to avoid any reliance on proxy objectives), and measured the resulting wire length.  A portion of their extensive comparisons is shown here; in no cases did the AlphaChip replicate give a shorter wire length than the existing commercial placer.
+
+They conclude that the reinforcement-learning approach described in the Nature publication did not consistently outperform established placement methods and typically required significantly greater computational effort.
+
+
+==== Fair comparisons in computational optimization ====
+The main argument here is that the reported runtime and quality comparisons between the reinforcement learning (RL) method and prior placement tools did not assess equivalent tasks under comparable conditions.
+The claimed six-hour runtime bound per circuit example did not account for pre-training. In the described experiments, RL policies were trained on twenty circuit blocks and then evaluated on five additional blocks, but the reported runtime reflected only the evaluation phase. The evaluation reported in the paper relied on computing resources that were larger than those used by other tools.
+
+
+==== Academic integrity ====
+In October 2024, sixteen methodological concerns were grouped into categories and itemized as "initial doubts" in a detailed critique by chip design researcher and former University of Michigan professor Igor L. Markov in Communications of the ACM, from an arXiv preprint in 2023. The critique described multiple questionable research practices in the evaluation of AlphaChip, particularly around selective reporting of benchmarks and outcomes (cherry-picking), selective use of metrics, and selective choice of baselines.  As of 2026, this paper was prefaced with an ACM "EXPRESSION OF CONCERN: An investigation is underway regarding the content and transparency of disclosure for this article."
+
+
+== Nature editorial actions ==
+In April 2022, the peer review file for the Nature article was included as a supplementary information file.
+In September 2023, Nature added an editor's note to "A graph placement methodology for fast chip design" stating that the paper's performance claims had been called into question and that the editors were investigating the concerns.  On 21 September 2023, Andrew B. Kahng's accompanying News & Views article was retracted; the retraction notice said that new information about the methods used in the Google paper had become available after publication and had changed the author’s assessment, and it also said that Nature was conducting an independent investigation of the paper’s performance claims.  By late September 2024, the editor's note was removed without explanation, but Nature published an addendum to the original paper (dated 26 September 2024). The addendum introduced the name AlphaChip for the proposed RL technique and described methodological details that critics had previously identified as missing, including the use of initial 
+  
+    
+      
+        (
+        x
+        ,
+        y
+        )
+      
+    
+    {\displaystyle (x,y)}
+  
+ locations. The addendum addressed some methodological details but still lacked the full training and evaluation inputs needed for independent replication.
+
+
+== Author responses and ensuing debate ==
+Lead authors Azalia Mirhoseini and Anna Goldie rejected internal allegations of fraud or serious methodological flaws, describing whistleblower Satrajit Chatterjee's complaints as a "campaign of misinformation." Google spokespeople stated that the method had been vetted, open-sourced, independently replicated, and deployed "around the world." Academics replied that independent replications had not shown the result claimed, and the use of AlphaChip in production does not prove its superiority over prior methods.  Google researchers also argued that critics omitted pre-training and used insufficient compute. In response, academics pointed out that Google code release included no support for pre-training, the examples used for pre-training were not publicly available, and the compute used in attempted replication equaled the levels reported in the paper.  Goldie, Mirhoseini, and Dean responded to the CACM paper with a letter to the editor, describing its meta-analysis as "regurgitating… unpublished, non-peer-reviewed arguments" and containing "thinly veiled fraud allegations already found to be without merit by Nature."
+
+
+== Status as of 2026 ==
+No positive independent replications of the Nature results have been reported in peer-reviewed literature three and four years since publication.
+Starting in 2022, multiple researchers and commentators called for results on publicly available benchmarks to settle the dispute through independent verification and comparison but as of 2026 no such results have been published.  In December 2024, ACM's editor-in-chief, James Larus, publicly invited Jeff Dean and his co-authors to submit their technical response to critiques for peer review.
+More indirectly, none of the commercial companies with competing products have adopted this approach.  A 2026 statement by Thomas Andersen, vice president for AI & Machine Learning at Synopsys, states: "In core EDA algorithms, there have been attempts with reinforcement learning to come up with better solutions, but that hasn’t really panned out."
+
+
+== See also ==
+Criticism of Google
+Google Brain
+
+
+== Notes ==
+
+
+== References ==
