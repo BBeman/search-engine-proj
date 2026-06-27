@@ -37,4 +37,4 @@ def normalise_result():
         result[file.name] = normalise(text)
     return result
 
-print(normalise_result())
+#print(normalise_result())

@@ -38,3 +38,29 @@ Now for implementation. I started off with a basic hardcoded dictionary so that 
 However, we then wanted term frequency, so how often the token appeared in a doc, we wanted the length of each doc and we can't just add that to our set. what we then needed was dicts of dicts not sets we needed to get a count of our terms and add them to the document. Using counter we get a key value pairing of our term with its frequency looping through that we then used the same original layout but instead of a set created an empty dictionary if we don't have the token already in the dict and then we added key values token and key with term frequency. As for length of documents we just use len of each document's token list.
 
 Next we needed to dump it into a json. so we created a combined dict of our inverted index and doc length, created and opened up a json file and wrote a json dump of our combined data. Last point another reason set wouldn't have worked over dict is it made the index json serializable as sets can't be dumped to json. a dict is structured like json.
+
+## Stage 2
+
+Now with our index done, we move to querying it. The goal is that we take a query from the user. It could be one word or multiple, and we want to fetch the documents that contain that word or query. We also want operators in this implementation, so AND queries, OR queries, and NOT queries.
+
+Example:
+
+word1 and word2 gives us the documents shared by both words. This should be the same even if the user doesn't type "and", which is actually a bug we had earlier where only the first word was being queried.
+
+word1 or word2 gives us both sets merged together, so all documents from either word without the duplicates.
+
+word1 not word2 returns documents containing word1 but not word2.
+
+Firstly I loaded the json dump we had in index.json, the one we created during indexing. Now we need to trace the structure of this json, because what we did was map an "index" key to our inverted index and a "doc_length" key to our doc lengths. But for querying we only need what is in the inverted index. The inverted index, if we recall, is a token mapped to the documents it is in, and in our case also the term frequency, which we don't need for querying (we will need it later for ranking).
+
+That is what the get_docs function does. It checks if the query from the user is in the inverted index, then returns a sorted list of the documents matched to that query.
+
+Now for the main algorithm, which is our two pointer merge. For the AND operator we do an intersection merge. We walk both sorted lists with two pointers and check if the current document in term1's list equals the current document in term2's list. If they are equal, that document is in both, so we add it and advance both pointers. If term1's current document is alphabetically less than term2's, we advance term1's pointer, otherwise we advance term2's.
+
+Union does the same walk, but this time it appends term1's document when it is less than term2's, then advances term1, and similar for term2. Then we flush the leftovers, so we extend the result with the slice of whatever is left in each list after the loop ends.
+
+For difference we only append term1's document when it is less than term2's, meaning term2 has moved past it and they are not equal. Then we flush the leftover term1 documents.
+
+When I started this I built the functions using hardcoded input, just (a,c,d,e) and (a,b,c). Originally I accidentally forgot to sort the input. On a sorted list the merge gives you a,c, but not sorting it gives you just a, so you lose a whole document, which is not ideal. The two pointer merge only works on sorted lists, which is why get_docs sorts before anything reaches the merge.
+
+Now the main part is our dispatcher, which splits the query into a list of words then checks for an operator. We then normalise the query so it matches the tokens in our inverted index. Originally I only let 2 sorted document lists go into our functions, but that doesn't allow for more than 2 word queries, so I had to chain it. I get the first term's documents and assign them to a result variable, then loop through the rest of the terms, calling our function with the running result and the next term's documents, reassigning result each pass. So on each chain run it rewrites result with the narrowed down answer. Lastly I added a rarest first optimisation to the AND queries, the rarest term being the one that appears in the fewest documents. We sort the terms by how many documents they are in, smallest first, then start the intersection with that one. This speeds up the query because an intersection can only shrink as we add more terms, so starting with the smallest list keeps the running result small and every later merge has less to iterate over. If we started with the most common term instead, the running result would be large and each merge would do more work. We don't do this for OR because a union only grows, so the order doesn't save anything, and we don't do it for NOT because NOT is binary, it only has two sides so there is no chain to reorder.
