@@ -111,7 +111,7 @@ def ranking(query: str, k: int = 10) -> list[str]:
             idf = math.log(len(data["doc_length"]) / len(data["index"][term]))
             for docs in data["index"][term]:
                 if docs in candidates:
-                    tf = data["index"][term][docs]
+                    tf = len(data["index"][term][docs])
                     if docs not in result:
                         result[docs] = tf * idf
                     else:
@@ -121,6 +121,33 @@ def ranking(query: str, k: int = 10) -> list[str]:
     return top
 
 
+def phrase_search(phrase: str) -> list[str]:
+    terms = normalise(phrase)
+    if not terms:
+        return []
+
+    candidates = get_docs(terms[0])
+    for term in terms[1:]:
+        candidates = intersect(candidates, get_docs(term))
+
+    result = []
+    for doc in candidates:
+        first_positions = data["index"][terms[0]][doc]
+        for pos in first_positions:
+            match = True
+            for offset, term in enumerate(terms[1:], start=1):
+                if (pos + offset) not in data["index"][term][doc]:
+                    match = False
+                    break
+            if match:
+                result.append(doc)
+                break
+    return result
+
+
 if __name__ == "__main__":
-    # print(dispatcher(input("search: ")))
-    print(ranking(input("search: ")))
+    q = input("search: ")
+    if q.startswith('"') and q.endswith('"'):
+        print(phrase_search(q.strip('"')))
+    else:
+        print(ranking(q))
