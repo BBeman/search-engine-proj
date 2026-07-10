@@ -1,3 +1,5 @@
-This project is a Lexical search engine (inverted index, tf-idf, BM25). the retrieval layer underneath modern RAG.
+A lexical search engine built from scratch in Python — inverted index,
+boolean queries, tf-idf ranking, positional/phrase queries.
+Currently in progress: BM25. The retrieval layer underneath modern RAG.
 
-run python index.py to build the index
+Run `python index.py` to build the index.
