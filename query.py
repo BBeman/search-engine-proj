@@ -103,12 +103,15 @@ def dispatcher(query: str) -> list[str]:
 
 
 def ranking(query: str, k: int = 10) -> list[str]:
+
     result = {}
     terms = normalise(query)
     candidates = dispatcher(query)
+
     for term in terms:
         if term in data["index"]:
             idf = math.log(len(data["doc_length"]) / len(data["index"][term]))
+
             for docs in data["index"][term]:
                 if docs in candidates:
                     tf = len(data["index"][term][docs])
@@ -116,6 +119,34 @@ def ranking(query: str, k: int = 10) -> list[str]:
                         result[docs] = tf * idf
                     else:
                         result[docs] += tf * idf
+
+    top = heapq.nlargest(k, result, key=lambda d: result[d])
+    return top
+
+
+def bm25(query: str, k: int = 10) -> list[str]:
+
+    result = {}
+    k1 = 1.5
+    b = 0.75
+    terms = normalise(query)
+    candidates = dispatcher(query)
+    avgdl = sum(data["doc_length"].values()) / len(data["doc_length"])
+
+    for term in terms:
+        if term in data["index"]:
+            df = len(data["index"][term])
+            n = len(data["doc_length"])
+            idf = math.log((n - df + 0.5) / (df + 0.5) + 1)
+
+            for docs in data["index"][term]:
+                if docs in candidates:
+                    tf = len(data["index"][term][docs])
+                    dl = data["doc_length"][docs]
+                    if docs not in result:
+                        result[docs] = idf * (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * (dl / avgdl)))
+                    else:
+                        result[docs] += idf * (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * (dl / avgdl)))
 
     top = heapq.nlargest(k, result, key=lambda d: result[d])
     return top
@@ -145,9 +176,14 @@ def phrase_search(phrase: str) -> list[str]:
     return result
 
 
+
 if __name__ == "__main__":
     q = input("search: ")
     if q.startswith('"') and q.endswith('"'):
         print(phrase_search(q.strip('"')))
     else:
-        print(ranking(q))
+        m = input("method(bm25 or tfidf): ")
+        if m == "tfidf":
+            print(ranking(q))
+        else:
+            print(bm25(q))
