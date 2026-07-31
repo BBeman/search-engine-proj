@@ -102,7 +102,7 @@ def dispatcher(query: str) -> list[str]:
         return result
 
 
-def ranking(query: str, k: int = 10) -> list[str]:
+def ranking(query: str, k: int = 10) -> list[tuple[str, float]]:
 
     result = {}
     terms = normalise(query)
@@ -120,11 +120,11 @@ def ranking(query: str, k: int = 10) -> list[str]:
                     else:
                         result[docs] += tf * idf
 
-    top = heapq.nlargest(k, result, key=lambda d: result[d])
+    top = heapq.nlargest(k, result.items(), key=lambda pair: pair[1])
     return top
 
 
-def bm25(query: str, k: int = 10) -> list[str]:
+def bm25(query: str, k: int = 10) -> list[tuple[str, float]]:
 
     result = {}
     k1 = 1.5
@@ -148,7 +148,7 @@ def bm25(query: str, k: int = 10) -> list[str]:
                     else:
                         result[docs] += idf * (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * (dl / avgdl)))
 
-    top = heapq.nlargest(k, result, key=lambda d: result[d])
+    top = heapq.nlargest(k, result.items(), key=lambda pair: pair[1])
     return top
 
 
@@ -174,16 +174,3 @@ def phrase_search(phrase: str) -> list[str]:
                 result.append(doc)
                 break
     return result
-
-
-
-if __name__ == "__main__":
-    q = input("search: ")
-    if q.startswith('"') and q.endswith('"'):
-        print(phrase_search(q.strip('"')))
-    else:
-        m = input("method(bm25 or tfidf): ")
-        if m == "tfidf":
-            print(ranking(q))
-        else:
-            print(bm25(q))
